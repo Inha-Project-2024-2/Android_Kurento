@@ -1,6 +1,8 @@
 package com.example.android_kurento_1
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
@@ -9,7 +11,6 @@ import fi.vtt.nubomedia.kurentoroomclientandroid.RoomError
 import fi.vtt.nubomedia.kurentoroomclientandroid.RoomListener
 import fi.vtt.nubomedia.kurentoroomclientandroid.RoomNotification
 import fi.vtt.nubomedia.kurentoroomclientandroid.RoomResponse
-import fi.vtt.nubomedia.kurentotreeclientandroid.KurentoTreeAPI
 import fi.vtt.nubomedia.kurentotreeclientandroid.TreeError
 import fi.vtt.nubomedia.kurentotreeclientandroid.TreeListener
 import fi.vtt.nubomedia.kurentotreeclientandroid.TreeNotification
@@ -27,7 +28,6 @@ import org.webrtc.RendererCommon
 import org.webrtc.SessionDescription
 import org.webrtc.SurfaceViewRenderer
 import java.io.BufferedInputStream
-import java.io.InputStream
 import java.security.cert.CertificateFactory
 
 
@@ -39,7 +39,7 @@ class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer, 
     private lateinit var localRenderer: SurfaceViewRenderer
     private lateinit var remoteRenderer: SurfaceViewRenderer
     private lateinit var connectButton: Button // 추가: 버튼 변수 선언
-    private lateinit var kurentoTreeAPI: KurentoTreeAPI
+    //private lateinit var kurentoTreeAPI: KurentoTreeAPI
 
 
 
@@ -72,6 +72,8 @@ class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer, 
         executor = LooperExecutor()
         executor.requestStart()
 
+
+
         // 버튼 클릭 리스너 설정
         connectButton.setOnClickListener {
             //print("setOnCliskListener 수행")
@@ -80,11 +82,13 @@ class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer, 
             initializeWebSocketAndWebRTC()
         }
 
+
+
     }
 
     /*
-      서버에 WebSocket 연결 후 WebRTC 초기화
-      */
+  서버에 WebSocket 연결 후 WebRTC 초기화
+  */
     private fun initializeWebSocketAndWebRTC() {
 
 
@@ -92,7 +96,8 @@ class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer, 
         val wsUri = "wss://10.0.2.2:8443/groupcall"
 
         kurentoRoomAPI = KurentoRoomAPI(executor, wsUri, this)
-        kurentoTreeAPI = KurentoTreeAPI(executor, wsUri, this)
+
+        //kurentoTreeAPI = KurentoTreeAPI(executor, wsUri, this)
 
         try {
             val cf = CertificateFactory.getInstance("X.509")
@@ -102,7 +107,7 @@ class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer, 
                 }
             }
             kurentoRoomAPI.addTrustedCertificate("ServerCertificate", myCert)
-            kurentoTreeAPI.useSelfSignedCertificate(true)
+            kurentoRoomAPI.useSelfSignedCertificate(true)
         } catch (e: Exception) {
             Log.e("MainActivity", "인증서 로드 실패: ${e.message}")
         }
@@ -112,9 +117,12 @@ class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer, 
         try {
             kurentoRoomAPI.connectWebSocket()
 
-            // WebSocket 연결 상태 확인
-            val isConnected = kurentoRoomAPI.isWebSocketConnected
-            Log.d("MainActivity", "WebSocket 연결 상태: $isConnected")
+
+            // 일정 시간 지연 후 WebSocket 연결 상태 확인 (지연 시간: 2초)
+            Handler(Looper.getMainLooper()).postDelayed({
+                val isConnected = kurentoRoomAPI.isWebSocketConnected
+                Log.d("MainActivity", "WebSocket 연결 상태 (2초 후): $isConnected")
+            }, 3000) // 2000ms = 2초
 
         } catch (e: Exception) {
             Log.e("MainActivity", "WebSocket 연결 시도 실패: ${e.message}")
@@ -144,15 +152,18 @@ class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer, 
 
     }
 
+
     /*
     Kurento 서버와의 WebSocket이 성공적으로 연결되었을 때 호출
     이 메소드에서는 방에 참가하는 작업을 수행
     kurentoRoomAPI.sendJoinRoom()을 호출하여 참가자의 이름과 방 이름을 서버로 보냄
      */
     override fun onRoomConnected() {
-        Log.d("MainActivity", "WebSocket이 성공적으로 연결되었습니다. 이제 방에 참가합니다.")
-        kurentoRoomAPI.sendJoinRoom("jin", "tae", true, 123)
-        Log.d("MainActivity", "onRoomConnected 수행 완료")
+        Log.d("MainActivity", "WebSocket이 성공적으로 연결되었습니다.")
+
+        kurentoRoomAPI.sendJoinRoom("user1", "tae", true, 123)
+        kurentoRoomAPI.sendCustomRequest()
+        //Log.d("MainActivity", "onRoomConnected 수행 완료")
 
     }
 
