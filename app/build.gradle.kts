@@ -43,8 +43,8 @@ dependencies {
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
 
-    implementation(libs.kurento.room.client.android)
-    implementation(libs.webrtcpeer.android) // fi.vtt.nubomedia:kurento-room-client-android:1.1.2
+    implementation(libs.kurento.room.client.android) // fi.vtt.nubomedia:kurento-room-client-android:1.1.2
+    implementation(libs.webrtcpeer.android) // fi.vtt.nubomedia:webrtcpeer-android:1.1.2
 
 
 

@@ -32,6 +32,8 @@ class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer {
         // Initialize SurfaceViewRenderers for local and remote video
         localRenderer = findViewById(R.id.local_view)
         remoteRenderer = findViewById(R.id.remote_view)
+        connectButton = findViewById(R.id.connect_button); // 수정: 버튼 초기화 추가
+
 
         val eglBase = EglBase.create()
         localRenderer.init(eglBase.eglBaseContext, null)
@@ -40,33 +42,31 @@ class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer {
         executor = LooperExecutor()
         executor.requestStart()
 
+        // SSL 인증서 무시 설정 추가
+        SSLHelper.trustAllCertificates();
 
         // 버튼 클릭 리스너 설정
         connectButton.setOnClickListener {
-            print("setOnCliskListener 수행")
+            //print("setOnCliskListener 수행")
+            Log.d("MainActivity", "Button 클릭")
             // 서버 연결 수행
             initializeWebSocketAndWebRTC()
         }
 
-        // Initialize KurentoRoomAPI with WebSocket URI
-        val wsUri = "wss://localhost:8443/groupcall"
-        kurentoRoomAPI = KurentoRoomAPI(executor, wsUri, this)
-        kurentoRoomAPI.connectWebSocket()
-
-        // Initialize WebRTC
-        initializeWebRTC()
     }
 
     /*
       서버에 WebSocket 연결 후 WebRTC 초기화
       */
     private fun initializeWebSocketAndWebRTC() {
-        print("initializeWebSocketAndWebRTC 수행")
+
         // Initialize KurentoRoomAPI with WebSocket URI
-        val wsUri = "wss://localhost:8443/groupcall"
+        val wsUri = "wss://10.0.2.2:8443/groupcall"
         kurentoRoomAPI = KurentoRoomAPI(executor, wsUri, this)
         kurentoRoomAPI.connectWebSocket()
 
+
+        Log.d("MainActivity", "connectWebSocket() 수행 완료")
         // Initialize WebRTC
         initializeWebRTC()
     }
@@ -76,7 +76,7 @@ class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer {
     WebRTC 관련 설정을 진행. 여기서 NBMMediaConfiguration을 생성하여 영상의 해상도, 오디오 코덱, 카메라 방향 등의 WebRTC 세부 설정을 정의
      */
     private fun initializeWebRTC() {
-        print("initializeWebRTC 수행")
+
         // WebRTC Media Configuration
         val mediaConfiguration = NBMMediaConfiguration(
             NBMMediaConfiguration.NBMRendererType.OPENGLES,
@@ -88,6 +88,10 @@ class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer {
 
         nbmWebRTCPeer = NBMWebRTCPeer(mediaConfiguration, this, localRenderer, this)
         nbmWebRTCPeer.initialize()
+
+        Log.d("MainActivity", "initializeWebRTC 수행 완료")
+
+        //onRoomConnected()
     }
 
     /*
@@ -96,7 +100,10 @@ class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer {
     kurentoRoomAPI.sendJoinRoom()을 호출하여 참가자의 이름과 방 이름을 서버로 보냄
      */
     override fun onRoomConnected() {
-        kurentoRoomAPI.sendJoinRoom("jin", "1", true, 123)
+
+        kurentoRoomAPI.sendJoinRoom("jin", "tae", true, 123)
+
+        Log.d("MainActivity", "onRoomConnected 수행 완료")
     }
 
 
@@ -192,5 +199,8 @@ class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer {
     override fun onBufferedAmountChange(l: Long, connection: NBMPeerConnection?, channel: DataChannel?) {}
     override fun onStateChange(connection: NBMPeerConnection?, channel: DataChannel?) {}
     override fun onMessage(buffer: DataChannel.Buffer?, connection: NBMPeerConnection?, channel: DataChannel?) {}
+
 }
+
+
 
