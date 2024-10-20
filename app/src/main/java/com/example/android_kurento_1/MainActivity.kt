@@ -11,10 +11,6 @@ import fi.vtt.nubomedia.kurentoroomclientandroid.RoomError
 import fi.vtt.nubomedia.kurentoroomclientandroid.RoomListener
 import fi.vtt.nubomedia.kurentoroomclientandroid.RoomNotification
 import fi.vtt.nubomedia.kurentoroomclientandroid.RoomResponse
-import fi.vtt.nubomedia.kurentotreeclientandroid.TreeError
-import fi.vtt.nubomedia.kurentotreeclientandroid.TreeListener
-import fi.vtt.nubomedia.kurentotreeclientandroid.TreeNotification
-import fi.vtt.nubomedia.kurentotreeclientandroid.TreeResponse
 import fi.vtt.nubomedia.utilitiesandroid.LooperExecutor
 import fi.vtt.nubomedia.webrtcpeerandroid.NBMMediaConfiguration
 import fi.vtt.nubomedia.webrtcpeerandroid.NBMPeerConnection
@@ -31,7 +27,7 @@ import java.io.BufferedInputStream
 import java.security.cert.CertificateFactory
 
 
-class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer, TreeListener {
+class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer {
 
     private lateinit var kurentoRoomAPI: KurentoRoomAPI
     private lateinit var nbmWebRTCPeer: NBMWebRTCPeer
@@ -39,7 +35,6 @@ class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer, 
     private lateinit var localRenderer: SurfaceViewRenderer
     private lateinit var remoteRenderer: SurfaceViewRenderer
     private lateinit var connectButton: Button // 추가: 버튼 변수 선언
-    //private lateinit var kurentoTreeAPI: KurentoTreeAPI
 
 
 
@@ -54,7 +49,7 @@ class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer, 
         // Initialize SurfaceViewRenderers for local and remote video
         localRenderer = findViewById(R.id.local_view)
         remoteRenderer = findViewById(R.id.remote_view)
-        connectButton = findViewById(R.id.connect_button); // 수정: 버튼 초기화 추가
+        connectButton = findViewById(R.id.connect_button) // 수정: 버튼 초기화 추가
 
 
         val eglBase = EglBase.create()
@@ -122,7 +117,7 @@ class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer, 
             Handler(Looper.getMainLooper()).postDelayed({
                 val isConnected = kurentoRoomAPI.isWebSocketConnected
                 Log.d("MainActivity", "WebSocket 연결 상태 (2초 후): $isConnected")
-            }, 3000) // 2000ms = 2초
+            }, 2000) // 2000ms = 2초
 
         } catch (e: Exception) {
             Log.e("MainActivity", "WebSocket 연결 시도 실패: ${e.message}")
@@ -161,8 +156,7 @@ class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer, 
     override fun onRoomConnected() {
         Log.d("MainActivity", "WebSocket이 성공적으로 연결되었습니다.")
 
-        kurentoRoomAPI.sendJoinRoom("user1", "tae", true, 123)
-        kurentoRoomAPI.sendCustomRequest()
+        kurentoRoomAPI.sendJoinRoom("user1", "tae", true, 815)
         //Log.d("MainActivity", "onRoomConnected 수행 완료")
 
     }
@@ -173,14 +167,15 @@ class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer, 
      서버로부터 방 참가 응답을 받으면 generateOffer() 메소드를 통해 SDP 제안을 생성하고, Kurento 서버에 영상을 송출할 준비를 합니다.
      */
     override fun onRoomResponse(response: RoomResponse) {
-        if (response.id == 123) {
-            Log.d("KurentoRoom", "Successfully connected to the room!")
+        Log.d("KurentoRoom", "onRoomResponse 호출완료!!!")
 
+        if (response.id == 815) {
+            Log.d("KurentoRoom", "Successfully connected to the room!")
             initializeWebRTC()
-            Log.d("MainActivity", "initializeWebRTC 수행 완료")
 
         }
     }
+
 
     /*
     다른 참가자의 접속 및 ICE 후보에 대한 이벤트를 처리
@@ -262,25 +257,7 @@ class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer, 
     override fun onBufferedAmountChange(l: Long, connection: NBMPeerConnection?, channel: DataChannel?) {}
     override fun onStateChange(connection: NBMPeerConnection?, channel: DataChannel?) {}
     override fun onMessage(buffer: DataChannel.Buffer?, connection: NBMPeerConnection?, channel: DataChannel?) {}
-    override fun onTreeResponse(response: TreeResponse?) {
-        TODO("Not yet implemented")
-    }
 
-    override fun onTreeError(error: TreeError?) {
-        TODO("Not yet implemented")
-    }
-
-    override fun onTreeNotification(notification: TreeNotification?) {
-        TODO("Not yet implemented")
-    }
-
-    override fun onTreeConnected() {
-        TODO("Not yet implemented")
-    }
-
-    override fun onTreeDisconnected() {
-        TODO("Not yet implemented")
-    }
 
 }
 
