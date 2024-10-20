@@ -11,6 +11,7 @@ activity = "1.9.3"
 constraintlayout = "2.1.4"
 kurentoRoomClientAndroid = "1.1.2"
 webrtcpeerAndroid = "1.1.2"
+kurentoTreeClientAndroid = "1.1.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -23,6 +24,7 @@ androidx-activity = { group = "androidx.activity", name = "activity", version.re
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 kurento-room-client-android = { group = "fi.vtt.nubomedia", name = "kurento-room-client-android", version.ref = "kurentoRoomClientAndroid" }
 webrtcpeer-android = { group = "fi.vtt.nubomedia", name = "webrtcpeer-android", version.ref = "webrtcpeerAndroid" }
+kurento-tree-client-android = { group = "fi.vtt.nubomedia", name = "kurento-tree-client-android", version.ref = "kurentoTreeClientAndroid" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

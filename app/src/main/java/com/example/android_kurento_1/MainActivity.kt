@@ -1,17 +1,37 @@
 package com.example.android_kurento_1
 
-import android.graphics.ImageFormat
 import android.os.Bundle
 import android.util.Log
-import androidx.appcompat.app.AppCompatActivity
-import fi.vtt.nubomedia.kurentoroomclientandroid.*
-import fi.vtt.nubomedia.utilitiesandroid.LooperExecutor
-import fi.vtt.nubomedia.webrtcpeerandroid.*
-import org.webrtc.*
 import android.widget.Button
+import androidx.appcompat.app.AppCompatActivity
+import fi.vtt.nubomedia.kurentoroomclientandroid.KurentoRoomAPI
+import fi.vtt.nubomedia.kurentoroomclientandroid.RoomError
+import fi.vtt.nubomedia.kurentoroomclientandroid.RoomListener
+import fi.vtt.nubomedia.kurentoroomclientandroid.RoomNotification
+import fi.vtt.nubomedia.kurentoroomclientandroid.RoomResponse
+import fi.vtt.nubomedia.kurentotreeclientandroid.KurentoTreeAPI
+import fi.vtt.nubomedia.kurentotreeclientandroid.TreeError
+import fi.vtt.nubomedia.kurentotreeclientandroid.TreeListener
+import fi.vtt.nubomedia.kurentotreeclientandroid.TreeNotification
+import fi.vtt.nubomedia.kurentotreeclientandroid.TreeResponse
+import fi.vtt.nubomedia.utilitiesandroid.LooperExecutor
+import fi.vtt.nubomedia.webrtcpeerandroid.NBMMediaConfiguration
+import fi.vtt.nubomedia.webrtcpeerandroid.NBMPeerConnection
+import fi.vtt.nubomedia.webrtcpeerandroid.NBMWebRTCPeer
+import org.webrtc.DataChannel
+import org.webrtc.EglBase
+import org.webrtc.IceCandidate
+import org.webrtc.MediaStream
+import org.webrtc.PeerConnection
+import org.webrtc.RendererCommon
+import org.webrtc.SessionDescription
+import org.webrtc.SurfaceViewRenderer
+import java.io.BufferedInputStream
+import java.io.InputStream
+import java.security.cert.CertificateFactory
 
 
-class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer {
+class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer, TreeListener {
 
     private lateinit var kurentoRoomAPI: KurentoRoomAPI
     private lateinit var nbmWebRTCPeer: NBMWebRTCPeer
@@ -19,6 +39,8 @@ class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer {
     private lateinit var localRenderer: SurfaceViewRenderer
     private lateinit var remoteRenderer: SurfaceViewRenderer
     private lateinit var connectButton: Button // 추가: 버튼 변수 선언
+    private lateinit var kurentoTreeAPI: KurentoTreeAPI
+
 
 
     /*
@@ -38,12 +60,17 @@ class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer {
         val eglBase = EglBase.create()
         localRenderer.init(eglBase.eglBaseContext, null)
         remoteRenderer.init(eglBase.eglBaseContext, null)
+        Log.d("MainActivity", "EGL 컨텍스트가 생성되었습니다.")
+
+
+        localRenderer.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FILL)
+        remoteRenderer.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FILL)
+        localRenderer.setMirror(true) // 로컬 카메라를 미러링하여 자연스러운 화면을 보이도록 설정
+        remoteRenderer.setMirror(false) // 원격 비디오는 일반적으로 미러링하지 않음
+
 
         executor = LooperExecutor()
         executor.requestStart()
-
-        // SSL 인증서 무시 설정 추가
-        SSLHelper.trustAllCertificates();
 
         // 버튼 클릭 리스너 설정
         connectButton.setOnClickListener {
@@ -60,15 +87,41 @@ class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer {
       */
     private fun initializeWebSocketAndWebRTC() {
 
+
         // Initialize KurentoRoomAPI with WebSocket URI
         val wsUri = "wss://10.0.2.2:8443/groupcall"
+
         kurentoRoomAPI = KurentoRoomAPI(executor, wsUri, this)
-        kurentoRoomAPI.connectWebSocket()
+        kurentoTreeAPI = KurentoTreeAPI(executor, wsUri, this)
+
+        try {
+            val cf = CertificateFactory.getInstance("X.509")
+            val myCert = resources.openRawResource(R.raw.server_certificate).use { caInput ->
+                BufferedInputStream(caInput).use {
+                    cf.generateCertificate(it)
+                }
+            }
+            kurentoRoomAPI.addTrustedCertificate("ServerCertificate", myCert)
+            kurentoTreeAPI.useSelfSignedCertificate(true)
+        } catch (e: Exception) {
+            Log.e("MainActivity", "인증서 로드 실패: ${e.message}")
+        }
 
 
-        Log.d("MainActivity", "connectWebSocket() 수행 완료")
-        // Initialize WebRTC
-        initializeWebRTC()
+
+        try {
+            kurentoRoomAPI.connectWebSocket()
+
+            // WebSocket 연결 상태 확인
+            val isConnected = kurentoRoomAPI.isWebSocketConnected
+            Log.d("MainActivity", "WebSocket 연결 상태: $isConnected")
+
+        } catch (e: Exception) {
+            Log.e("MainActivity", "WebSocket 연결 시도 실패: ${e.message}")
+        }
+
+        //onRoomConnected()
+
     }
 
 
@@ -78,20 +131,17 @@ class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer {
     private fun initializeWebRTC() {
 
         // WebRTC Media Configuration
-        val mediaConfiguration = NBMMediaConfiguration(
-            NBMMediaConfiguration.NBMRendererType.OPENGLES,
-            NBMMediaConfiguration.NBMAudioCodec.OPUS,
-            0, NBMMediaConfiguration.NBMVideoCodec.VP8, 0,
-            NBMMediaConfiguration.NBMVideoFormat(640, 480, ImageFormat.YUV_420_888, 30.0),
-            NBMMediaConfiguration.NBMCameraPosition.FRONT
-        )
+        val mediaConfiguration = NBMMediaConfiguration()
 
         nbmWebRTCPeer = NBMWebRTCPeer(mediaConfiguration, this, localRenderer, this)
         nbmWebRTCPeer.initialize()
 
         Log.d("MainActivity", "initializeWebRTC 수행 완료")
 
-        //onRoomConnected()
+
+        nbmWebRTCPeer.generateOffer("local", true)
+
+
     }
 
     /*
@@ -100,10 +150,10 @@ class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer {
     kurentoRoomAPI.sendJoinRoom()을 호출하여 참가자의 이름과 방 이름을 서버로 보냄
      */
     override fun onRoomConnected() {
-
+        Log.d("MainActivity", "WebSocket이 성공적으로 연결되었습니다. 이제 방에 참가합니다.")
         kurentoRoomAPI.sendJoinRoom("jin", "tae", true, 123)
-
         Log.d("MainActivity", "onRoomConnected 수행 완료")
+
     }
 
 
@@ -114,8 +164,10 @@ class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer {
     override fun onRoomResponse(response: RoomResponse) {
         if (response.id == 123) {
             Log.d("KurentoRoom", "Successfully connected to the room!")
-            // Now publish video to the room
-            nbmWebRTCPeer.generateOffer("local", true)
+
+            initializeWebRTC()
+            Log.d("MainActivity", "initializeWebRTC 수행 완료")
+
         }
     }
 
@@ -199,8 +251,28 @@ class MainActivity : AppCompatActivity(), RoomListener, NBMWebRTCPeer.Observer {
     override fun onBufferedAmountChange(l: Long, connection: NBMPeerConnection?, channel: DataChannel?) {}
     override fun onStateChange(connection: NBMPeerConnection?, channel: DataChannel?) {}
     override fun onMessage(buffer: DataChannel.Buffer?, connection: NBMPeerConnection?, channel: DataChannel?) {}
+    override fun onTreeResponse(response: TreeResponse?) {
+        TODO("Not yet implemented")
+    }
+
+    override fun onTreeError(error: TreeError?) {
+        TODO("Not yet implemented")
+    }
+
+    override fun onTreeNotification(notification: TreeNotification?) {
+        TODO("Not yet implemented")
+    }
+
+    override fun onTreeConnected() {
+        TODO("Not yet implemented")
+    }
+
+    override fun onTreeDisconnected() {
+        TODO("Not yet implemented")
+    }
 
 }
+
 
 
 
