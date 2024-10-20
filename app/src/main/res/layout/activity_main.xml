@@ -4,25 +4,24 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <!-- 로컬 비디오 렌더링 SurfaceView -->
     <org.webrtc.SurfaceViewRenderer
         android:id="@+id/local_view"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
         android:layout_weight="1"/>
 
-    <!-- 원격 비디오 렌더링 SurfaceView -->
     <org.webrtc.SurfaceViewRenderer
         android:id="@+id/remote_view"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
         android:layout_weight="1"/>
+
 
     <!-- 서버 연결을 트리거하는 버튼 -->
     <Button
         android:id="@+id/connect_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Connect to Server"
+        android:text="@string/connect_to_server"
         android:layout_gravity="center"/>
 </LinearLayout>
